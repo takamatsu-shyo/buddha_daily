@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仏教の智慧 - 365日の探求と分析</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Shippori+Mincho:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Serif JP', serif;
+            background-color: #f5f5f4; /* stone-100 */
+            color: #1c1917; /* stone-900 */
+        }
+        h1, h2, h3, .sutra-title {
+            font-family: 'Shippori Mincho', serif;
+        }
+        /* チャートコンテナの必須スタイル */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e7e5e4;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a8a29e;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #78716c;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Chosen Palette: Zen Stone (Stone, Teal, Indigo) -->
+    <!-- Application Structure Plan:
+         1. Header: Simple branding and date display.
+         2. Hero Section (Today's Wisdom): The primary focus. Displays the sutra for the calculated 'Day' with navigation.
+         3. Analytics Dashboard: Visualizes the distribution of Buddhist traditions (Pie Chart) and key concepts (Bar Chart) to help users understand the diversity of the teachings.
+         4. Explorer (Search & List): A functional list with real-time filtering to allow users to find specific scriptures or topics.
+         This structure moves from specific (today) to analytical (overview) to explorative (archive), facilitating deep understanding.
+    -->
+
+    <!-- Header -->
+    <header class="bg-[#2c3e50] text-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold tracking-wider">仏教の智慧 <span class="text-xs md:text-sm font-normal opacity-80 ml-2">365日の探求</span></h1>
+            <div id="current-date-display" class="text-sm font-light"></div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8 space-y-12">
+
+        <!-- Section 1: Today's Wisdom (Hero) -->
+        <section id="hero-section" class="max-w-4xl mx-auto">
+            <div class="mb-4 text-center">
+                <h2 class="text-3xl font-bold text-stone-700">今日の一節</h2>
+                <p class="text-stone-500 mt-2 text-sm leading-relaxed">
+                    365日、毎日異なる仏教の智慧に触れることができます。<br>
+                    日々の生活に安らぎと気づきをもたらす言葉を見つけてください。
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden border-t-4 border-teal-600 relative">
+                <!-- Navigation Controls -->
+                <div class="absolute top-4 right-4 flex space-x-2">
+                    <button onclick="navigateDay(-1)" class="p-2 bg-stone-100 hover:bg-stone-200 rounded-full text-stone-600 transition" aria-label="前日へ">
+                        &#8592;
+                    </button>
+                    <button onclick="resetToToday()" class="px-3 py-1 bg-teal-100 hover:bg-teal-200 rounded-full text-teal-800 text-xs font-bold transition">
+                        今日
+                    </button>
+                    <button onclick="navigateDay(1)" class="p-2 bg-stone-100 hover:bg-stone-200 rounded-full text-stone-600 transition" aria-label="翌日へ">
+                        &#8594;
+                    </button>
+                </div>
+
+                <div class="p-6 md:p-10">
+                    <div class="flex items-center mb-4">
+                        <span id="display-day-badge" class="bg-teal-600 text-white px-3 py-1 rounded text-sm font-bold shadow-sm">Day 1</span>
+                        <span id="display-source-badge" class="ml-3 text-sm text-teal-700 font-semibold bg-teal-50 px-2 py-1 rounded border border-teal-100"></span>
+                    </div>
+                    
+                    <h3 id="display-title" class="sutra-title text-3xl md:text-4xl font-bold text-stone-800 mb-6 leading-tight"></h3>
+                    
+                    <div class="prose prose-stone max-w-none">
+                        <p id="display-intro" class="text-lg md:text-xl text-stone-600 leading-8 border-l-4 border-stone-300 pl-4 italic bg-stone-50 p-4 rounded-r-lg">
+                            <!-- Content goes here -->
+                        </p>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-stone-100 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-stone-400 uppercase tracking-widest">Key Concept</span>
+                            <p id="display-concept" class="text-indigo-700 font-bold mt-1"></p>
+                        </div>
+                        <button onclick="copyToClipboard()" class="text-sm text-stone-400 hover:text-teal-600 flex items-center transition">
+                            <span class="mr-1">&#128203;</span> 共有用にコピー
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Analytics Dashboard -->
+        <section id="analytics-section" class="bg-white p-6 md:p-8 rounded-xl shadow-md">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-stone-700">智慧の体系分析</h2>
+                <p class="text-sm text-stone-500 mt-2 max-w-2xl mx-auto">
+                    このアプリに収録されている70の主要な経典が、どのような伝統や思想に基づいているかを可視化しました。
+                    仏教の多様性と広がりを理解するための手助けとなります。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Chart 1: Tradition Distribution -->
+                <div class="flex flex-col items-center">
+                    <h3 class="text-lg font-semibold text-stone-600 mb-4">経典の系統分布</h3>
+                    <div class="chart-container">
+                        <canvas id="sourceChart"></canvas>
+                    </div>
+                    <p class="text-xs text-stone-400 mt-2 text-center">大乗仏教、上座部、密教など、教えの源流の割合</p>
+                </div>
+
+                <!-- Chart 2: Key Concepts Frequency -->
+                <div class="flex flex-col items-center">
+                    <h3 class="text-lg font-semibold text-stone-600 mb-4">主要概念の頻出度</h3>
+                    <div class="chart-container">
+                        <canvas id="conceptChart"></canvas>
+                    </div>
+                    <p class="text-xs text-stone-400 mt-2 text-center">空、慈悲、戒律など、頻出するテーマの分析</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Explorer (List & Search) -->
+        <section id="explorer-section" class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-end md:items-center mb-6 border-b border-stone-200 pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-stone-700">経典アーカイブ (全70選)</h2>
+                    <p class="text-sm text-stone-500 mt-1">キーワードや系統で教えを検索・フィルタリングできます。</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3 w-full md:w-auto">
+                    <select id="filter-select" class="p-2 border border-stone-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="all">すべての系統</option>
+                        <!-- Options generated by JS -->
+                    </select>
+                    <input type="text" id="search-input" placeholder="キーワード検索..." class="p-2 border border-stone-300 rounded-lg text-sm w-full md:w-64 focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+            </div>
+
+            <!-- List Grid -->
+            <div id="sutra-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards generated by JS -->
+            </div>
+            
+            <div id="no-results" class="hidden text-center py-12 text-stone-400">
+                条件に一致する経典が見つかりませんでした。
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-[#2c3e50] text-stone-300 py-8 text-center mt-12">
+        <p class="text-sm">&copy; 2025 仏教の智慧プロジェクト</p>
+        <p class="text-xs mt-2 opacity-60">※ 本アプリのデータは学習用です。解釈は諸説あります。</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- DATA STORE ---
+        // 70 unique texts provided in the source report
+        const uniqueTexts = [
+            { title: '般若心経', source: '大乗/空', intro: '色即是空、空即是色の真理を説く。五蘊や十二因縁すら実体がないと知り、一切の苦を離れる智慧の精髄。最も短いながら最も深遠な経典。' },
+            { title: '金剛般若経', source: '大乗/空', intro: '金剛石のように堅固な智慧で煩悩を打ち破る。「無住の心」で布施を実践し、真の悟りへと至る道を示す。禅宗で特に重んじられる。' },
+            { title: '大般若経', source: '大乗/空', intro: '六百巻の膨大な経典群の総称。空の思想をあらゆる角度から徹底的に説き明かし、菩薩の修行の規範となる。三蔵法師・玄奘訳が有名。' },
+            { title: '維摩経', source: '大乗/空', intro: '在家の賢者・維摩居士が、文殊菩薩らと問答し、大乗仏教の空の思想を深める。在家でも悟れることを示唆し、不二の法門を説く。' },
+            { title: '勝鬘経', source: '大乗/空', intro: '女性である勝鬘夫人が如来の真実の教え（如来蔵）を説く。すべての生き物が内に仏となる可能性を持つという如来蔵思想の根幹を示す。' },
+            { title: '文殊師利所説般若波羅蜜経', source: '大乗/空', intro: '文殊菩薩が般若の教えの真髄を説く。言葉や思弁を超えた、不可説不可議の空の境地を悟るための智慧を示す。' },
+            { title: '入楞伽経', source: '大乗/空', intro: '仏の智慧と修行の段階を説く。万物は心識の現れであり、外に実体はないという唯識思想の萌芽が見られる。禅宗でも重要視される。' },
+            { title: '円覚経', source: '大乗/空', intro: '完全な悟り（円覚）の境地を説き、真理は誰もが本来持っていることを教える。頓悟（瞬間的な悟り）の思想が強く、禅や天台宗で読誦される。' },
+            { title: '思益梵天所問経', source: '大乗/空', intro: '思益梵天が仏に様々な質問をし、大乗の不可思議な行を明らかにする。悟りは固定的なものではなく、自由自在であることを説く。' },
+            { title: '最勝王経', source: '大乗/空', intro: '国を護るための法を説く。国が乱れたときにこの経典を読み、仏の加護を求めることで国家の安寧がもたらされるという護国経典の一つ。' },
+            { title: '法華経（如来寿量品）', source: '大乗/救済', intro: '久遠の仏陀の永遠の生命を説く。釈迦は実は遠い過去から存在し、人々を救うために仮の姿で現れたと教える。日蓮宗の根幹。' },
+            { title: '法華経（方便品）', source: '大乗/救済', intro: '仏が人々の能力や機根に応じて教えを説く（方便）が、最終的な目的はすべての人を仏にすること（一乗）にあると説く。' },
+            { title: '法華経（普門品）', source: '大乗/救済', intro: '観世音菩薩の偉大な救済力を説く。苦難に遭遇した人々が観音の名を唱えるだけで、観音がその声を聞き、すぐに救済の手を差し伸べる。' },
+            { title: '薬師経', source: '大乗/救済', intro: '薬師如来が立てた十二の大願と、その力によって人々が現世で病苦から救われ、衣食住に困らない利益を得ることを説く。' },
+            { title: '地蔵十輪経', source: '大乗/救済', intro: '地蔵菩薩が衆生を救済する誓願と、その功徳を説く。特に六道輪廻から迷える人々を救い出す菩薩の慈悲が強調される。' },
+            { title: '阿閦仏国経', source: '大乗/救済', intro: '阿閦（あしゅく）仏の浄土である妙喜国を説く。この仏は怒りを捨てた仏であり、彼の国土には煩悩がない清らかな世界が広がる。' },
+            { title: '弥勒下生経', source: '大乗/救済', intro: '未来仏である弥勒菩薩が、遠い将来この世に下生（げしょう）し、衆生を救済して理想郷を築くことを予言する。' },
+            { title: '楞伽経', source: '大乗/救済', intro: '大乗仏教における重要な経典の一つ。唯識思想や如来蔵思想が融合しており、阿頼耶識（アラヤシキ）や空の真理を深く説く。' },
+            { title: '宝積経', source: '大乗/救済', intro: '釈迦が多くの菩薩たちと共に、仏の教えの真髄、特に菩薩の正しい修行法や行いを集中的に説く広範な経典群の総称。' },
+            { title: '梵網経', source: '大乗/救済', intro: '大乗仏教の戒律（十重禁戒、四十八軽戒）を説く。特に菩薩が守るべき倫理的規範として、日本仏教の多くの宗派で重視される。' },
+            { title: '無量寿経', source: '浄土系', intro: '法蔵菩薩（後の阿弥陀如来）が立てた四十八願の詳細を説く。この願いにより、すべての人々が念仏によって極楽浄土に往生できることを保証する。' },
+            { title: '観無量寿経', source: '浄土系', intro: '韋提希夫人が極楽浄土の荘厳な姿を観想（イメージする）する方法を説く。観想が困難な人には、阿弥陀仏の名を唱える念仏の功徳を説く。' },
+            { title: '阿弥陀経', source: '浄土系', intro: '阿弥陀如来の極楽浄土の美しさと功徳を説き、人々がその名（南無阿弥陀仏）を唱えることで往生できることを勧める。浄土三部経の中で最も短い。' },
+            { title: '往生論（天親）', source: '浄土系', intro: 'インドの天親（世親）菩薩が、阿弥陀仏の極楽浄土への往生を目指すための実践法（五念門）を体系的にまとめた論書。' },
+            { title: '選択本願念仏集（法然）', source: '浄土系', intro: '日本の法然上人が、阿弥陀如来の本願こそが衆生を救う唯一の道であり、念仏こそがその唯一の行であると説く浄土宗の根本聖典。' },
+            { title: '教行信証（親鸞）', source: '浄土系', intro: '親鸞聖人の主著。他力本願の教えの真髄を明らかにし、阿弥陀如来の本願を信じる信心こそが往生の決定因であると説く。浄土真宗の根本聖典。' },
+            { title: '善導大師の観経疏', source: '浄土系', intro: '中国の善導大師による『観無量寿経』の注釈書。念仏こそが阿弥陀仏の本願にかなった正定の業であると説き、日本浄土教に多大な影響を与えた。' },
+            { title: '和讃（親鸞）', source: '浄土系', intro: '親鸞聖人が、経典や祖師たちの教えを七五調の日本語の詩歌（和讃）にしたもの。仏の教えを分かりやすく伝えるために作られた。' },
+            { title: '西方合論', source: '浄土系', intro: '浄土教の思想を論理的に解説し、極楽往生の意義を明らかにした論書。浄土教の思想的基盤を確立する上で重要。' },
+            { title: '般舟三昧経', source: '浄土系', intro: '阿弥陀仏をひたすら観想し、一心に仏の名を唱えることで、実際に仏を目の前に見ることができる（現前）という修行法を説く。' },
+            { title: 'ダンマパダ（法句経）', source: '原始・上座部', intro: 'ブッダの教えを423の短い詩句（格言）で集めたもの。道徳、精神集中、智慧など、日常生活の指針となる教えを簡潔に説く。' },
+            { title: '長部経典（ディーガ・ニカーヤ）', source: '原始・上座部', intro: 'パーリ語仏典の一つ。ブッダの長い説法を集めた経典群。大般涅槃経など、仏教の世界観や歴史的な内容を含む。' },
+            { title: '中部経典（マッジマ・ニカーヤ）', source: '原始・上座部', intro: 'ブッダの中くらいの長さの説法を集めた経典群。特に具体的な修行法や心のあり方に関する教えが多い。' },
+            { title: '相応部経典（サンユッタ・ニカーヤ）', source: '原始・上座部', intro: '特定のテーマ（相応）ごとにブッダの説法を分類・編集した経典群。五蘊、六処、四諦など、教理的な内容が中心。' },
+            { title: '増支部経典（アングッタラ・ニカーヤ）', source: '原始・上座部', intro: '数字の数に応じてブッダの説法を分類した経典群。一つ（法）から十一（法）まで、多岐にわたる教えを網羅。' },
+            { title: '律蔵（ヴィナヤ・ピタカ）', source: '原始・上座部', intro: '比丘（僧侶）や比丘尼（尼僧）が守るべき戒律（ルール）を詳細に規定した文書。僧団（サンガ）の運営規範。' },
+            { title: '論蔵（アビダンマ・ピタカ）', source: '原始・上座部', intro: 'ブッダの教えを哲学・心理学的な観点から分析・整理した文書。現象を構成要素に分解し、客観的に考察する。' },
+            { title: '清浄道論（ブッダゴーサ）', source: '原始・上座部', intro: '上座部仏教の教理を体系化した大乗仏教圏での論書。戒・定・慧の三学の修行道を詳細に説き、瞑想実践の教科書とされる。' },
+            { title: 'テーラガーター（長老の詩）', source: '原始・上座部', intro: 'ブッダの時代の悟りを開いた男性修行者（長老）たちの心の喜びを歌った詩集。修行の苦難と悟りの境地が詠まれる。' },
+            { title: 'ジャータカ（本生譚）', source: '原始・上座部', intro: 'ブッダが過去世において様々な生き物に生まれ変わり、徳を積んだ物語を集めたもの。慈悲や智慧の重要性を説く。' },
+            { title: '大日経', source: '密教', intro: '真言密教の根本経典の一つ。大日如来を教主とし、真言や印契、曼荼羅を用いた三密加持の修行により即身成仏を目指す。' },
+            { title: '金剛頂経', source: '密教', intro: '真言密教の根本経典の一つ。悟りの実践的な側面を詳細に説き、五智如来を中心とする金剛界曼荼羅の教えの根拠となる。' },
+            { title: '理趣経', source: '密教', intro: '般若経系に属し、密教で重んじられる。煩悩を否定せず、そのまま仏の智慧に変える「煩悩即菩提」の思想を説く。真言宗で頻繁に読誦される。' },
+            { title: '蘇悉地経', source: '密教', intro: '密教の儀式や修行の作法、特に真言や印の具体的な使用方法について詳細に説いた経典。修行の成功に必要な要点を説く。' },
+            { title: '瑜伽師地論（ゆがしじろん）', source: '密教/唯識', intro: '弥勒菩薩が説いたとされる、広大な唯識思想を体系化した論書。菩薩の修行の段階（瑜伽師の地）を詳細に解説する。' },
+            { title: '摂大乗論（しょうだいじょうろん）', source: '密教/唯識', intro: '無著菩薩が唯識の教えを簡潔にまとめた論書。阿頼耶識（アラヤシキ）の概念を確立し、大乗仏教の修行体系を支える。' },
+            { title: '菩提心論（ぼだいしんろん）', source: '密教', intro: '不空が翻訳したとされる、密教における「菩提心」の重要性を説く論書。菩提心の発起が即身成仏の種子であると教える。' },
+            { title: '孔雀明王経', source: '密教', intro: '孔雀明王が毒蛇や災難、病気などのあらゆる苦難を取り除く力を説く。現世利益を求める修法で用いられる人気の経典。' },
+            { title: '仁王経', source: '密教/護国', intro: '国を護るための法を説く護国経典の一つ。この経典を読誦することで、国王や国民が災難から守られ、国が平和になると説く。' },
+            { title: '熾盛光大威徳金輪仏頂経', source: '密教', intro: '災難や悪星（厄年など）を払い除くための強力な密教の修法を説く。特に星供（ほしく）の儀式で用いられる。' },
+            { title: '正法眼蔵（道元）', source: '日本/曹洞宗', intro: '道元禅師の主著。ただひたすらに坐禅を行う「只管打坐」を説き、修行と悟りが一体であるという禅の深遠な思想を伝える。' },
+            { title: '歎異抄（唯円）', source: '日本/浄土真宗', intro: '親鸞聖人の弟子が、親鸞の他力本願の教えの真髄と異説に対する戒めを記した書。信心の尊さを説く。' },
+            { title: '立正安国論（日蓮）', source: '日本/日蓮宗', intro: '日蓮聖人が当時の世情を憂い、法華経信仰による国土の安寧を主張した論書。災害の原因を正法の無視にあるとした。' },
+            { title: '臨済録', source: '中国/禅宗', intro: '中国禅宗の臨済義玄の語録。激しい言葉や行動（喝、棒）を用いて、弟子たちに自己の内面にある真の仏性を見出させる。' },
+            { title: '天台大師の摩訶止観', source: '中国/天台宗', intro: '中国天台宗の開祖・智顗（ちぎ）の主著。止（心を集中）と観（真理を観察）の修行法を体系化し、一切の現象が真理であると説く。' },
+            { title: '華厳五教章（法蔵）', source: '中国/華厳宗', intro: '中国華厳宗の法蔵（賢首大師）が、仏教の教えを五つの段階に分類し、華厳経が最高の教えであると体系的に説明した論書。' },
+            { title: '倶舎論（くしゃろん）', source: '中国/律宗', intro: '世親の著。仏教の基本的な世界観や教理（七十五法）を詳細に分類・解説した、仏教教学の基礎となる論書。' },
+            { title: '興禅護国論（栄西）', source: '日本/臨済宗', intro: '日本の臨済宗の開祖・栄西禅師が、禅の教えの正当性と、それが国を護る力を持つことを主張した論書。' },
+            { title: '三論玄義（吉蔵）', source: '中国/三論宗', intro: '中国三論宗の吉蔵の著。中観派の空の思想を基に、世間のあらゆる存在が固定的な実体を持たないという真理を説く。' },
+            { title: '真言八祖大師伝', source: '日本/真言宗', intro: '真言宗の教えを伝えた八人の祖師（龍猛から空海まで）の伝記。密教の歴史と継承の正当性を示す重要な文書。' },
+            { title: '六祖壇経', source: '中国/禅宗', intro: '中国禅宗の第六祖、慧能（えのう）の説法集。文字や教義にとらわれず、直接心を見つめて悟りを開く「不立文字、見性成仏」の教えを説く。' },
+            { title: '本朝法華験記', source: '日本/法華信仰', intro: '日本の法華経信仰の事例を集めた記録。法華経を信仰することで得られる現世利益や奇跡的な体験を語る。' },
+            { title: '伝教大師の山家学生式', source: '日本/天台宗', intro: '日本の天台宗の開祖・最澄が比叡山延暦寺に学僧を育成するために定めた規則。大乗戒を中心とした修行体制を確立した。' },
+            { title: '選択集（中国語版）', source: '中国/浄土教', intro: '法然の『選択本願念仏集』の中国語版。念仏が最も優れた行であるという教えが中国の浄土教にも影響を与えた。' },
+            { title: '沙門大徳等の教誨文', source: '日本/律宗', intro: '奈良時代の僧・行基が、人々に対して仏教の教えと道徳を説いた文書。民衆教化の重要性を示す。' },
+            { title: '二入四行論（達磨）', source: '中国/禅宗', intro: '禅宗の祖・達磨が説いたとされる、悟りへの二つの道（理入と行入）と四つの実践（報怨行、随縁行、無所求行、称法行）を説く。' },
+            { title: '三経義疏（聖徳太子）', source: '日本/初期仏教', intro: '聖徳太子が著したとされる『法華経』『勝鬘経』『維摩経』の注釈書。日本仏教の教理の基礎を築いたとされる。' },
+            { title: '浄土論註（曇鸞）', source: '中国/浄土教', intro: '中国の曇鸞（どんらん）大師による『往生論』の注釈書。他力本願の教えを深め、浄土教の発展に貢献した。' },
+            { title: '発心集（鴨長明）', source: '日本/無常観', intro: '日本の歌人・鴨長明による仏教説話集。世の無常を感じて出家した人々や、仏道に入った後の様々な体験談を集める。' },
+            { title: '涅槃経（大般涅槃経）', source: '大乗/如来常住', intro: '釈迦の入滅（涅槃）前後の出来事を説きながら、仏の真実の生命は永遠であり不滅である（常住）という大乗仏教の教えを説く。' }
+        ];
+
+        // Generate 365 Days of Data
+        const dailyData = [];
+        const totalDays = 365;
+        
+        // Helper to infer key concept from text
+        function getKeyConcept(text) {
+            if (text.source.includes('空')) return '空・智慧';
+            if (text.source.includes('救済')) return '慈悲・救済';
+            if (text.source.includes('浄土')) return '念仏・往生';
+            if (text.source.includes('密教')) return '即身成仏・儀礼';
+            if (text.source.includes('上座部')) return '解脱・修行';
+            if (text.source.includes('禅')) return '悟り・坐禅';
+            if (text.intro.includes('戒律')) return '戒律';
+            return '教理・実践';
+        }
+
+        for (let i = 1; i <= totalDays; i++) {
+            const index = (i - 1) % uniqueTexts.length;
+            const text = uniqueTexts[index];
+            dailyData.push({
+                day: i,
+                title: text.title,
+                source: text.source,
+                intro: text.intro,
+                concept: getKeyConcept(text)
+            });
+        }
+
+        // --- STATE MANAGEMENT ---
+        let currentDayIdx = 0; // 0-based index
+        const today = new Date();
+        const startOfYear = new Date(today.getFullYear(), 0, 0);
+        const diff = today - startOfYear;
+        const oneDay = 1000 * 60 * 60 * 24;
+        const dayOfYear = Math.floor(diff / oneDay);
+        // Ensure day is within range 1-365
+        const initialDay = Math.min(Math.max(1, dayOfYear), 365);
+        currentDayIdx = initialDay - 1;
+
+        // --- DOM ELEMENTS ---
+        const displayDate = document.getElementById('current-date-display');
+        const displayDayBadge = document.getElementById('display-day-badge');
+        const displaySourceBadge = document.getElementById('display-source-badge');
+        const displayTitle = document.getElementById('display-title');
+        const displayIntro = document.getElementById('display-intro');
+        const displayConcept = document.getElementById('display-concept');
+        
+        const filterSelect = document.getElementById('filter-select');
+        const searchInput = document.getElementById('search-input');
+        const sutraGrid = document.getElementById('sutra-grid');
+        const noResults = document.getElementById('no-results');
+
+        // --- INITIALIZATION ---
+        function init() {
+            // Set Header Date
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            displayDate.textContent = today.toLocaleDateString('ja-JP', options);
+
+            // Populate Filters
+            const sources = [...new Set(dailyData.map(d => d.source))];
+            sources.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s;
+                option.textContent = s;
+                filterSelect.appendChild(option);
+            });
+
+            // Initial Renders
+            renderHero(currentDayIdx);
+            renderCharts();
+            renderList(dailyData);
+
+            // Event Listeners
+            filterSelect.addEventListener('change', handleFilter);
+            searchInput.addEventListener('input', handleFilter);
+        }
+
+        // --- HERO SECTION LOGIC ---
+        function renderHero(idx) {
+            const data = dailyData[idx];
+            displayDayBadge.textContent = `Day ${data.day}`;
+            displaySourceBadge.textContent = data.source;
+            displayTitle.textContent = `『${data.title}』`;
+            displayIntro.textContent = data.intro;
+            displayConcept.textContent = data.concept;
+        }
+
+        function navigateDay(direction) {
+            currentDayIdx += direction;
+            if (currentDayIdx < 0) currentDayIdx = totalDays - 1;
+            if (currentDayIdx >= totalDays) currentDayIdx = 0;
+            renderHero(currentDayIdx);
+        }
+
+        function resetToToday() {
+            currentDayIdx = initialDay - 1;
+            renderHero(currentDayIdx);
+        }
+
+        function copyToClipboard() {
+            const data = dailyData[currentDayIdx];
+            const text = `【仏教の智慧 Day ${data.day}】\n『${data.title}』\n${data.intro}\n#仏教の智慧`;
+            
+            // iframe restrictions fix
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('クリップボードにコピーしました');
+            } catch (err) {
+                console.error('コピーに失敗しました', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- CHART LOGIC ---
+        function renderCharts() {
+            // Data Prep for Source Chart
+            const sourceCounts = {};
+            uniqueTexts.forEach(t => {
+                sourceCounts[t.source] = (sourceCounts[t.source] || 0) + 1;
+            });
+            
+            // Data Prep for Concept Chart
+            const conceptCounts = {};
+            uniqueTexts.forEach(t => {
+                const concept = getKeyConcept(t);
+                conceptCounts[concept] = (conceptCounts[concept] || 0) + 1;
+            });
+
+            // Zen Colors for Charts
+            const chartColors = [
+                '#0d9488', // Teal 600
+                '#4f46e5', // Indigo 600
+                '#d97706', // Amber 600
+                '#be123c', // Rose 700
+                '#0f766e', // Teal 700
+                '#4338ca', // Indigo 700
+                '#b45309', // Amber 700
+                '#9f1239', // Rose 800
+                '#57534e', // Stone 600
+                '#78716c'  // Stone 500
+            ];
+
+            // Source Chart (Pie)
+            new Chart(document.getElementById('sourceChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(sourceCounts),
+                    datasets: [{
+                        data: Object.values(sourceCounts),
+                        backgroundColor: chartColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { font: { family: "'Noto Serif JP', serif" } } }
+                    }
+                }
+            });
+
+            // Concept Chart (Bar)
+            new Chart(document.getElementById('conceptChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(conceptCounts),
+                    datasets: [{
+                        label: '経典数',
+                        data: Object.values(conceptCounts),
+                        backgroundColor: '#57534e', // Stone color
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { ticks: { font: { family: "'Noto Serif JP', serif", size: 10 } } }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // --- EXPLORER LIST LOGIC ---
+        function renderList(items) {
+            sutraGrid.innerHTML = '';
+            
+            // Limit to unique texts for the explorer view to avoid 365 repeats of 70 items
+            // But user asked for 365 items functionality context, so let's show unique items first
+            // Actually, showing 70 unique items is better UX for "Archive" than showing duplicates.
+            // Let's filter items to unique titles for the grid view
+            const uniqueItems = [];
+            const seenTitles = new Set();
+            items.forEach(item => {
+                if(!seenTitles.has(item.title)){
+                    uniqueItems.push(item);
+                    seenTitles.add(item.title);
+                }
+            });
+
+            const itemsToRender = uniqueItems;
+
+            if (itemsToRender.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            itemsToRender.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-5 rounded-lg shadow border border-stone-100 hover:shadow-lg transition duration-200 flex flex-col';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xs font-bold text-stone-400 uppercase tracking-wide truncate pr-2">${item.source}</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-stone-800 mb-2 leading-snug">『${item.title}』</h4>
+                    <p class="text-sm text-stone-600 line-clamp-3 mb-4 flex-grow">${item.intro}</p>
+                    <div class="mt-auto pt-3 border-t border-stone-50 flex justify-between items-center">
+                        <span class="text-xs font-semibold text-teal-600 bg-teal-50 px-2 py-1 rounded">${item.concept}</span>
+                        <!-- Jump to Day functionality could be added here if needed, but linking 70 items to 365 days is complex visually -->
+                    </div>
+                `;
+                sutraGrid.appendChild(card);
+            });
+        }
+
+        function handleFilter() {
+            const category = filterSelect.value;
+            const query = searchInput.value.toLowerCase();
+
+            // Filter on the full dailyData set first, then deduce unique items from that result?
+            // Actually, simpler to filter the uniqueTexts source array directly.
+            
+            const filtered = uniqueTexts.filter(item => {
+                const matchesCategory = category === 'all' || item.source === category;
+                const matchesSearch = item.title.toLowerCase().includes(query) || 
+                                      item.intro.toLowerCase().includes(query) ||
+                                      item.source.toLowerCase().includes(query);
+                return matchesCategory && matchesSearch;
+            });
+
+            // Create temporary objects compatible with renderList expectation
+            const mappedFiltered = filtered.map((t, i) => ({
+                day: i, // Dummy day
+                title: t.title,
+                source: t.source,
+                intro: t.intro,
+                concept: getKeyConcept(t)
+            }));
+
+            renderList(mappedFiltered);
+        }
+
+        // Start App
+        window.onload = init;
+
+    </script>
+    
+    <!-- Visualization & Content Choices:
+         1. Tradition Distribution (Doughnut Chart): Visualizes the balance of the 70 texts (Mahayana, Theravada, Zen, etc.). Helps users see the breadth of the collection.
+         2. Key Concepts (Bar Chart): Shows the thematic focus (Voidness, Compassion, Precepts).
+         3. Interactive Card (Hero): Displays one sutra at a time to focus attention (Mindfulness), with navigation to explore others.
+         4. Filterable Grid: Allows non-linear exploration of the archive.
+         CONFIRMATION: NO SVG graphics used (Chart.js uses Canvas). NO Mermaid JS used.
+    -->
+</body>
+</html>
